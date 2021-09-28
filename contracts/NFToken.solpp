@@ -1,0 +1,78 @@
+pragma soliditypp ^0.4.3;
+import "./NFT.solpp";
+
+contract NFToken is NFT {
+
+     constructor(string memory tokenName, string memory symbol, string memory baseURI) NFT(tokenName, symbol) public {
+         _baseURI = baseURI;
+     }
+
+     uint256 tokenBalance;
+     uint256 nextTokenId;
+     uint256 numberOfTokens;
+     uint256[] tokenIds;
+
+
+     onMessage createToken(bytes32 _metadataURI) {
+            _mint(msg.sender, nextTokenId);
+            _setTokenURI(nextTokenId, _metadataURI);
+            tokenIds.push(nextTokenId); 
+            nextTokenId++;
+            numberOfTokens++;
+     }
+
+     onMessage burnToken(uint256 _tokenId) {
+            _burn(msg.sender,_tokenId);
+            for(uint256 i = 0; i < tokenIds.length; i++) {
+                if(tokenIds[i] == _tokenId) {
+                    tokenIds[i] = tokenIds[tokenIds.length-1];
+                    tokenIds.pop();
+                    break;
+                }
+            }
+            numberOfTokens--;
+     }
+
+    getter getBalance(address _owner) returns(uint){
+        return _getOwnerNFTCount(_owner);
+    }
+
+    getter getOwnerOf(uint256 _tokenId) returns(address){
+        return _getOwnerOfNFT(_tokenId);
+    }
+     
+     getter getTokenURI(uint256 _tokenId) returns(bytes32){
+        return _getTokenURI(_tokenId);
+    }
+
+    getter getTokensOf(address _owner) returns(uint256[] memory) {
+        uint256[] memory _tokenIds = new uint256[](_balances[_owner]) ;
+        uint256 j = 0;
+        for(uint256 i = 0; i < nextTokenId; i++) {
+            if(_owners[i] == _owner) {
+                _tokenIds[j] = i;
+                j++;
+            }
+        }
+        return _tokenIds;
+    }
+
+    getter getTotalNumberOfTokens() returns(uint256) {
+        return numberOfTokens;
+    }
+
+
+    getter isCallerApproved(address _caller, uint256 _tokenId) returns(bool) {
+        return _tokenApprovals[_tokenId] == _caller;
+    }
+
+    getter getApprovedAddress(uint256 _tokenId) returns(address) {
+        return _tokenApprovals[_tokenId];
+    }
+    
+
+    getter getAllTokens() returns(uint256[] memory) {
+        return tokenIds;
+    }
+
+ }

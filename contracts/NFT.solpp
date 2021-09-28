@@ -1,0 +1,193 @@
+pragma soliditypp ^0.4.3;
+
+contract NFT {
+
+    // Token name
+    string _name;
+
+    // Token symbol
+    string _symbol;
+
+    // Base URI
+    string _baseURI;
+   
+
+    // Mapping from token ID to owner address
+    mapping(uint256 => address) _owners;
+
+    // Mapping from owner address to token count
+    mapping (address => uint256) _balances;
+
+    // Mapping from token ID to approved address
+    mapping (uint256 => address)  _tokenApprovals;
+
+    // Mapping from owner to operator approvals
+    mapping(address => mapping(address => bool)) _operatorApprovals;
+
+    // Mapping for token URIs
+    mapping(uint256 => bytes32)  _tokenURIs;
+
+
+    constructor(string memory name, string memory symbol) public {
+        _name = name;
+        _symbol = symbol;
+    }
+
+
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 indexed _tokenId,
+        string log
+    );
+
+    event Approval(
+        address indexed _from,
+        address indexed _to,
+        uint256 indexed _tokenId,
+        string log
+    );
+
+     event ApprovalForAll(
+        address indexed _from,
+        address indexed _to,
+        bool _approved
+    );
+
+    message replyBalanceOf(uint);
+    message replyOwnerOf(address);
+    message replyApproved(address);
+    message replyApprovedForAll(bool);
+
+    // Sends the number of tokens in owner's account
+    onMessage balanceOf(address _owner)  {
+        require(_owner != address(0), 'balance query for the zero address');
+        send(msg.sender, replyBalanceOf(_balances[_owner]));
+    }
+
+    // Sends the owner of the tokenId token
+    onMessage ownerOf(uint256 _tokenId) {
+        require(_exists(_tokenId), 'token does not exist');
+        send(msg.sender, replyOwnerOf(_owners[_tokenId]));
+    }
+
+    // Gives permission to transfer tokenId token to another account. 
+    // Only a single account can be approved at a time
+    // Approving zero address clears the approval 
+    onMessage approve(address _to, uint256 _tokenId) {
+        address owner = _owners[_tokenId];
+        require(_to != owner, 'approval to current owner');
+        _approve(_to, _tokenId);
+    }
+
+    // Sends the account approved for tokenId token.
+    onMessage getApproved(uint256 _tokenId) {
+        require(_exists(_tokenId), 'token does not exist');
+        send(msg.sender, replyApproved(_tokenApprovals[_tokenId]));
+    }
+
+    // Approve or remove operator as an operator for the caller 
+    // Operators can call transferFrom or safeTransferFrom for any token owned by the caller.
+    onMessage setApprovalForAll(address _operator, bool _approved) {
+        require(_operator != msg.sender, 'approval to caller');
+        _operatorApprovals[msg.sender][_operator] = _approved;
+        emit ApprovalForAll(msg.sender, _operator, _approved);
+    }
+
+    // Sends if the operator is allowed to manage all of the assets of owner.
+    onMessage isApprovedForAll(address _owner, address _operator) {
+        send(msg.sender, replyApprovedForAll(_operatorApprovals[_owner][_operator]));
+    }
+
+    // Transfers tokenId token, 
+    // Checks first that contract recipients support safeTransfers 
+    onMessage safeTransferFrom(address _from, address _to, uint _tokenId) {
+        _safeTransfer(_from, _to, _tokenId, "");
+        emit Transfer(_from , _to, _tokenId, "Token has been transferred!");
+    }
+    
+    
+     
+    // Set `_tokenURI` of `_tokenId`
+    function _setTokenURI(uint256 _tokenId, bytes32 _tokenURI) internal {
+        require(_exists(_tokenId), 'token does not exist');
+        _tokenURIs[_tokenId] = _tokenURI;
+    }
+
+    function _getTokenURI(uint256 _tokenId) internal view returns(bytes32) {
+        return _tokenURIs[_tokenId];
+    }
+    function _mint(address _to, uint256 _tokenId) public {
+        require(_to != address(0));
+        require(_owners[_tokenId] == address(0));
+        _addNFToken(_to, _tokenId);
+        emit Transfer(address(0), _to, _tokenId, "Token has been minted!");
+    }
+
+    function _burn(address _from, uint256 _tokenId) public {
+        require(_exists(_tokenId), 'token does not exist');
+        require(_onlyOwner(_from, _tokenId), '_from must be the owner of _tokenId');
+        _tokenApprovals[_tokenId] = address(0);
+        delete  _tokenURIs[_tokenId];
+        _removeNFToken(_from, _tokenId);
+        emit Transfer(_from, address(0), _tokenId, "Token has been burned!");
+    }
+
+    function _addNFToken(address _to, uint256 _tokenId) internal {
+        _owners[_tokenId] = _to;
+        _balances[_to] ++;
+    }
+
+    function _removeNFToken(address _from, uint256 _tokenId) internal {
+        _balances[_from] --;
+        delete _owners[_tokenId];
+    }
+
+    // Approve '_to' to operate on 'tokenId'
+    // Emits  an Approval event
+    function _approve(address _to, uint256 _tokenId) internal {
+        _tokenApprovals[_tokenId] = _to;
+        emit Approval(_owners[_tokenId], _to, _tokenId, "Token has been approved!");
+    }
+
+
+    // Returns the number of tokens in owner's account.
+    function _getOwnerNFTCount(address _owner) public view returns (uint256)
+        {
+            return _balances[_owner];
+        }
+
+    // Returns the owner of the tokenId token.
+    function _getOwnerOfNFT(uint256 _tokenId) public view returns (address)
+        {
+            return _owners[_tokenId];
+        }
+
+    //  Returns whether `_tokenId` exists.
+    function _exists(uint256 _tokenId) internal view returns (bool) {
+        return _owners[_tokenId] != address(0);
+    }
+
+    //  Returns whether `_from` is owner of _tokenId.
+    function _onlyOwner(address _from, uint256 _tokenId) internal view  returns (bool) {
+        return _owners[_tokenId] == _from;
+    }
+
+    // Returns whether `_caller` can transfer the tokens
+    function _canTransfer(address _caller, address _from, uint256 _tokenId) internal view returns (bool) {
+        return _operatorApprovals[_from][_caller] || (_tokenApprovals[_tokenId] == _caller) || (_caller == _from);
+    }
+
+
+    function _safeTransfer(address _from, address _to, uint256 _tokenId, bytes memory data) internal {
+        require(_onlyOwner(_from, _tokenId), '_from must be the owner of _tokenId');
+        require(_to != address(0), 'transfer to zero address');
+        require(_canTransfer(msg.sender, _from, _tokenId), 'caller must be approved to transfer token');
+        _tokenApprovals[_tokenId] = address(0);
+        _removeNFToken(_from, _tokenId);
+        _addNFToken(_to, _tokenId);
+    }
+
+ }
+
+
