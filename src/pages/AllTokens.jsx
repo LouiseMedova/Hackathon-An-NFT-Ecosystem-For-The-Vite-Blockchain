@@ -6,7 +6,6 @@ import Loader from '../UI/loader/Loader';
 import { useFetching } from '../hooks/UseFetching';
 
 
-
 function AllTokens() {
 
 const [tokens, setTokens] = useState([]);

@@ -36,6 +36,8 @@ const MyTokens = () => {
 
 const [fetchTokens, isTokensLoading, TokenError] = useFetching ( async() => {
   const tokens = await TokenService.getTokensOf(account);
+  console.log('FETCH');
+  console.log(tokens);
   setTokens(tokens);
 });
 
@@ -53,6 +55,7 @@ const eventDetected = (event) => {
 
 
 useEffect(() => {
+  console.log('USE_EFFECTS');
   fetchTokens();
   fetchApprovedTokens();
   return () => {

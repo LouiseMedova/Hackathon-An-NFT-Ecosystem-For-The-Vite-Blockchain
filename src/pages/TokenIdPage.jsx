@@ -34,6 +34,7 @@ const TokenIdPage = () => {
     }
 
     const burn = async() => {
+        console.log(account);
         await TokenService.burnToken(account, params.id, eventDetected);
         
     } 

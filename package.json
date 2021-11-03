@@ -10,9 +10,12 @@
     "@vite/connector": "^0.0.2",
     "@vite/vitejs": "^2.3.14",
     "@vite/vitejs-ws": "^2.3.14",
+    "qrcode": "^1.4.4",
+    "qrcode.react": "^1.0.1",
     "react": "^17.0.2",
     "react-containers": "^16.0.5",
     "react-dom": "^17.0.2",
+    "react-qrcode": "^0.3.0",
     "react-router-dom": "^5.3.0",
     "react-scripts": "4.0.3",
     "web-vitals": "^1.0.1"
@@ -40,5 +43,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "qrcode-generator": "^1.4.4"
   }
 }

@@ -11,16 +11,20 @@ const Navbar = () => {
     const logout = () => {
       setIsAuth(false);
       localStorage.removeItem('auth');
+      localStorage.removeItem('account');
     }
 
     return (
+      isAuth
+      ?
      <div className="navbar">
-         <MyButton onClick={logout}> Log Out</MyButton>
-        <div className="navbar__links">
+            <MyButton onClick={logout}> Log Out</MyButton>
+           <div className="navbar__links">
             <Link to="/mytokens">My Page</Link>
             <Link to="/alltokens">All Tokens</Link>
         </div>
       </div>
+      : null
     );
 };
 

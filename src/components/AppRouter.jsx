@@ -32,7 +32,7 @@ const AppRouter = function() {
                 key={route.path}
             />
          )}
-        <Redirect to='/login' />
+        {/* <Redirect to='/login' /> */}
        </Switch>
     )
 }

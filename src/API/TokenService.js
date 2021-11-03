@@ -1,16 +1,18 @@
-import { WS_RPC } from '@vite/vitejs-ws'
+import provider from '@vite/vitejs-ws'
 import { ViteAPI, utils, abi, accountBlock, wallet } from '@vite/vitejs';
 import IPFSService from './IPFSService';
+import Connector from '@vite/connector';
 const { binary, off_chain, ABI, addr } = require('./config');
-const { seed } = require('./secrets');
+const providerURL = 'wss://buidl.vite.net/gvite/ws';
+//const providerURL = 'wss://node-tokyo.vite.net/ws';
+const providerTimeout = 60000;
+const providerOptions = { retryTimes: 10, retryInterval: 5000 };
+const WS_RPC = new provider(providerURL, providerTimeout, providerOptions);
+const viteClient = new ViteAPI(WS_RPC, () => {
+    console.log("client connected");
+});
+let vbInstance = null;
 
-
-const connection = new WS_RPC('wss://buidl.vite.net/gvite/ws'); // testnet node
-        const provider = new ViteAPI(connection, () => {
-        console.log("client connected");
-
-        
-    });
 
 const CONTRACT = {
     binary: binary,
@@ -18,50 +20,36 @@ const CONTRACT = {
     offChain: off_chain,
     address: addr
 }
-const addresses = [
-    wallet.getWallet(seed).deriveAddress(0),
-    wallet.getWallet(seed).deriveAddress(1),
-    wallet.getWallet(seed).deriveAddress(2)
-]
 
-const users = [{
-    "name": "user1",
-    "address": addresses[0].address
-    },
-    {
-    "name": "user2",
-    "address": addresses[1].address
-    },
-    {
-    "name": "user3",
-    "address": addresses[2].address
-    },  
-];
+async function sendVcTx(...args) {    
+    console.log(args)
+    console.log('vbInstance', vbInstance);
+    vbInstance.sendCustomRequest({method: 'vite_signAndSendTx', params: args}
+    ).then(signedBlock => console.log(signedBlock), err => console.error(err))
+    .catch( (err) => {console.warn(err); throw(err)});
+}
 
 async function callContract(account, methodName, params, amount) {
     console.log(params);
-    console.log('CALLCONTRACT');
     const block = accountBlock.createAccountBlock('callContract', {
-        address: account.address,
+        address: account,
         abi: CONTRACT.abi,
         methodName,
         amount,
         toAddress: CONTRACT.address,
         params
-    }).setProvider(provider).setPrivateKey(account.privateKey);
+    })
 
-    await block.autoSetPreviousAccountBlock();
-    const result = await block.sign().send();
-    console.log('call success', result);
+    let myblock = block.accountBlock
+    console.log("SENDING BLOCK:", myblock)
+    await sendVcTx({block: myblock, abi: CONTRACT.abi})
 }
 
 async function callOffChain(methodName, params){
-    
     const ehex = abi.encodeFunctionCall(CONTRACT.abi, params, methodName);
     const database64 = Buffer.from(ehex, 'hex').toString('base64');
     const code = Buffer.from(CONTRACT.offChain, 'hex').toString('base64');
-
-    const res = await provider.request('contract_callOffChainMethod', {
+    const res = await viteClient.request('contract_callOffChainMethod', {
         address: CONTRACT.address,
         code,
         data: database64
@@ -78,7 +66,9 @@ async function callOffChain(methodName, params){
 }
 
 async function getMetaData (id) {
+    console.log('GET_METADATA');
     const result = await callOffChain('getTokenURI', [id]);
+    console.log(result);
     const getData = await IPFSService.getData(result);
     getData.id = id;
     return getData;
@@ -86,7 +76,7 @@ async function getMetaData (id) {
 
 async function subscribeToEvent(address, eventName, detected){
     const filterParameters = {"addressHeightRange":{[address]:{"fromHeight":"0","toHeight":"0"}}}; 
-    const subscription = await provider.subscribe("createVmlogSubscription", filterParameters);
+    const subscription = await viteClient.subscribe("createVmlogSubscription", filterParameters);
     subscription.callback = (res) => {
     const sig = abi.encodeLogSignature(CONTRACT.abi, eventName);
         if (sig === res[0]['vmlog']['topics'][0]) {
@@ -103,14 +93,15 @@ async function subscribeToEvent(address, eventName, detected){
 
 export default class TokenService {
 
-    static async getUsers() {
-            return users;
+    static setVbInstance(instance) {
+        vbInstance = instance;
+        console.log(instance);
     }
 
-    static async createToken(metadata, user, eventDetected) {
+    static async createToken(metadata, account, eventDetected) {
+        console.log(metadata);
         await subscribeToEvent(CONTRACT.address, 'Transfer', eventDetected);
-        const account = addresses.filter( acc => acc.address === user );
-        return await callContract(account[0], 'createToken', [metadata])
+        return await callContract(account,'mint', [metadata])
     }
 
 
@@ -125,35 +116,36 @@ export default class TokenService {
     }
 
     static async getTokensOf(user) {
-        const account = addresses.filter( acc => acc.address === user );
-        const result = await callOffChain('getTokensOf', [account[0].address]);
+        console.log(user);
+        console.log('GET_TOKENS');
+        const result = await callOffChain('getTokensOf', [user]);
+        console.log('TOKENS_GOTTED');
         let tokens = [];
         for (let i = 0; i < result[0].length; i++) {
+            console.log('CYCLE');
           let tokenMetadata = await getMetaData(result[0][i]);
           tokens.push(tokenMetadata)
         }
+        console.log(tokens);
        return tokens;   
     }
 
     static async transferToken(from, to, tokenId, eventDetected) {
         await subscribeToEvent(CONTRACT.address, 'Transfer', eventDetected);
-        const account = addresses.filter( acc => acc.address === from );
         const owner = await callOffChain('getOwnerOf', [tokenId]);
-        return await callContract(account[0], 'safeTransferFrom', [owner[0], to, tokenId]);
+        return await callContract(from, 'transferFrom', [owner[0], to, tokenId]);
     }
 
     static async  approveToken(from, to, tokenId, eventDetected) {
         await subscribeToEvent(CONTRACT.address, 'Approval', eventDetected);
-        const account = addresses.filter( acc => acc.address === from );
-        return await callContract(account[0], 'approve',  [to, tokenId]);
+        return await callContract(from, 'approve',  [to, tokenId]);
     }
 
     static async  getApprovedTokens(user) {
-        const account = addresses.filter( acc => acc.address === user );
         const result = await callOffChain('getAllTokens', []);
         let approvedTokens = [];
         for (let i = 0; i < result[0].length; i++) {
-            const isApproved = await callOffChain('isCallerApproved', [account[0].address, result[0][i]]);
+            const isApproved = await callOffChain('isCallerApproved', [user, result[0][i]]);
             if(isApproved[0] === "1") {
                 let tokenMetadata = await getMetaData(result[0][i]);
                 approvedTokens.push(tokenMetadata)
@@ -169,9 +161,9 @@ export default class TokenService {
     }
 
     static async  isOwner(user, tokenId) {
-        const account = addresses.filter( acc => acc.address === user );
+        console.log('IS_OWNER');
         const owner = await callOffChain('getOwnerOf', [tokenId]);
-        return owner[0] ===  account[0].address;
+        return owner[0] ===  user;
     }
 
     static async  getApprovedAddress(tokenId) {
@@ -183,12 +175,10 @@ export default class TokenService {
         return approved[0];
     }
 
-    static async burnToken(user, tokenId, eventDetected) {
+    static async burnToken(account, tokenId, eventDetected) {
+        console.log(account);
         await subscribeToEvent(CONTRACT.address, 'Transfer', eventDetected);
-        const account = addresses.filter( acc => acc.address === user );
-        return await callContract(account[0], 'burnToken',  [tokenId]);
-
+        return await callContract(account, 'burn',  [tokenId]);
     }
     
-
 }
