@@ -4,14 +4,49 @@ import IPFSService from './IPFSService';
 import Connector from '@vite/connector';
 const { binary, off_chain, ABI, addr } = require('./config');
 const providerURL = 'wss://buidl.vite.net/gvite/ws';
-//const providerURL = 'wss://node-tokyo.vite.net/ws';
 const providerTimeout = 60000;
 const providerOptions = { retryTimes: 10, retryInterval: 5000 };
 const WS_RPC = new provider(providerURL, providerTimeout, providerOptions);
 const viteClient = new ViteAPI(WS_RPC, () => {
     console.log("client connected");
 });
+
+const BRIDGE = 'wss://biforst.vite.net'
 let vbInstance = null;
+let connected = false;
+
+const initConnector = (QRData, connectUser, disconnect) => {
+    vbInstance = new Connector({ bridge: BRIDGE })
+    setTimeout(10000)
+    console.log(vbInstance);
+    vbInstance.createSession().then(() => {
+        console.log('connect uri', vbInstance.uri);
+        console.log(vbInstance.uri.length);
+        QRData(vbInstance.uri);
+    });
+
+    vbInstance.on('connect', (err, payload) => {
+        const { accounts } = payload.params[0];
+        if (!accounts || !accounts[0]) throw new Error('address is null');
+
+        const address = accounts[0];
+        console.log('user address', address);
+        connectUser(address)
+        connected = true;
+    })
+
+    vbInstance.on('disconnect', err => {
+        if(connected) {
+            console.log(err)
+            vbInstance.destroy();
+            disconnect()
+        //    setTimeout(initConnector(QRData, connectUser, disconnect), 5000);
+            console.log('called init connector');
+            connected = false;
+        }
+
+    })
+}
 
 
 const CONTRACT = {
@@ -92,6 +127,10 @@ async function subscribeToEvent(address, eventName, detected){
 
 
 export default class TokenService {
+
+    static connectToBridge(QRData, connectUser, disconnect) {
+        initConnector(QRData, connectUser, disconnect);
+    }
 
     static setVbInstance(instance) {
         vbInstance = instance;

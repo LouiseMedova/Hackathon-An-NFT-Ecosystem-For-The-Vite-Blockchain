@@ -1,15 +1,11 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
-import Loader from '../UI/loader/Loader';
 import { useLocation, useHistory } from "react-router-dom";
 import { AuthContext } from '../context';
 import MyButton from '../UI/button/MyButton';
 import MyModal from '../UI/modal/MyModal';
 import TokenService from '../API/TokenService';
 import TransferApproveForm from '../components/TransferApproveForm';
-import EventInfo from '../components/EventInfo';
-
-
 
 const TokenIdPage = () => {
 

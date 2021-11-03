@@ -4,70 +4,36 @@ import { AuthContext } from '../context';
 import QRBox from './QRBox';
 import TokenService from '../API/TokenService';
 
-const store = {
-    connected: "vc_not_initialized",
-    address: "vite_placeholder",
-    contract_owner: 'vite_ad43000f81aee4468387854e20a8c53e2c9027b8655ad2de6c',
-    uri: ""
-}
 
-// Setup ViteConnect to allow user to securely fund and guess answers.
-const BRIDGE = 'wss://biforst.vite.net'
-let instance = null;
 
 const ViteConnectBox = () => {
-    const {qrdata, setQRdata, vbInstance, setVBInstance, isConnected, setIsConnected, isAuth, setIsAuth, account, setAccount} = useContext(AuthContext);
+    const {qrdata, setQRdata, isConnected, setIsConnected, isAuth, setIsAuth, account, setAccount} = useContext(AuthContext);
     const [init, setInit] = useState(false)
-    const initConnector = () => {
-        instance = new Connector({ bridge: BRIDGE })
-        console.log(instance);
-        console.log("IS_CONNECTED", isConnected);
-        console.log("IS_AUTH", isAuth);
-        instance.createSession().then(() => {
-            store.uri = instance.uri;
-            console.log('connect uri', instance.uri);
-            console.log(instance.uri.length);
-            setQRdata(instance.uri);
-            setIsConnected(true);
-            localStorage.setItem('account', account)
-            store.state = 'waiting';
-        });
-        instance.on('connect', (err, payload) => {
-            const { accounts } = payload.params[0];
-            if (!accounts || !accounts[0]) throw new Error('address is null');
-    
-            const address = accounts[0];
-            console.log('user address', address);
-            setIsAuth(true)
-            setAccount(address)
-            localStorage.setItem('auth', true);
-            localStorage.setItem('account', address);
-            setVBInstance(instance);
-            store.address = address;
-            store.state = 'connected'
-        })
-    
-        instance.on('disconnect', err => {
-            console.log(err)
-            store.state = 'disconnected'
-            instance.destroy();
-            setVBInstance(null)
-            setIsConnected(false);
-            setQRdata('');
-            setIsAuth(false)
-            localStorage.removeItem('auth')
-            localStorage.removeItem('account')
-            setTimeout(initConnector, 5000);
-            console.log('called init connector');
 
-        })
+    const QRData = (uri) => {
+        setQRdata(uri);
+        setIsConnected(true);
+    }
+
+    const connectUser = (address) => {
+        setIsAuth(true)
+        setAccount(address)
+        localStorage.setItem('auth', true);
+        localStorage.setItem('account', address);
+    }
+
+    const disconnect = () => {
+        setIsConnected(false);
+        setQRdata('');
+        setIsAuth(false)
+        localStorage.removeItem('auth')
+        localStorage.removeItem('account')
+        setInit(false)
     }
 
     useEffect(() => {
         console.log('AUTH', localStorage.getItem('auth'));
         console.log('ACCOUNT', localStorage.getItem('account'));
-        console.log(vbInstance);
-        TokenService.setVbInstance(vbInstance)
         if(localStorage.getItem('auth') === 'true') {
             console.log('HERE',localStorage.getItem('account') );
             const account = localStorage.getItem('account');
@@ -77,15 +43,19 @@ const ViteConnectBox = () => {
         } else {
             if(!init) {
                 setInit(true)
-                initConnector();
+                TokenService.connectToBridge(QRData, connectUser, disconnect);
             }
         }
     }, [])
-    
-    useEffect(() => {
-        TokenService.setVbInstance(vbInstance)
-    }, [vbInstance])
 
+    useEffect(() => {
+        if(!init) {
+            setInit(true)
+            console.log('INIT');
+            TokenService.connectToBridge(QRData, connectUser, disconnect);
+        }
+
+    }, [init])
 
     return (
         <div>
