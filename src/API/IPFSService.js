@@ -16,6 +16,7 @@ export default class IPFSService {
     ipfsHashFile = await ipfs.add(buffer);
     const shorten = (hash) => '0x' + bs58.decode(hash).slice(2).toString('hex');
     const short_hash = shorten(ipfsHashFile[0].hash);
+    console.log(short_hash);
     return [short_hash, data];
     
   }

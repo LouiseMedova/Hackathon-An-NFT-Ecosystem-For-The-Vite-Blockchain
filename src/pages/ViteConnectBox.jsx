@@ -1,13 +1,12 @@
 import React, { useState, useContext, useEffect } from 'react';
-import Connector from '@vite/connector';
 import { AuthContext } from '../context';
-import QRBox from './QRBox';
+import QRBox from '../components/QRBox';
 import TokenService from '../API/TokenService';
 
 
 
 const ViteConnectBox = () => {
-    const {qrdata, setQRdata, isConnected, setIsConnected, isAuth, setIsAuth, account, setAccount} = useContext(AuthContext);
+    const {qrdata, setQRdata, isConnected, setIsConnected, isAuth, setIsAuth, setAccount} = useContext(AuthContext);
     const [init, setInit] = useState(false)
 
     const QRData = (uri) => {
@@ -32,10 +31,7 @@ const ViteConnectBox = () => {
     }
 
     useEffect(() => {
-        console.log('AUTH', localStorage.getItem('auth'));
-        console.log('ACCOUNT', localStorage.getItem('account'));
         if(localStorage.getItem('auth') === 'true') {
-            console.log('HERE',localStorage.getItem('account') );
             const account = localStorage.getItem('account');
             setAccount(account)
             setIsConnected(true)
@@ -51,6 +47,7 @@ const ViteConnectBox = () => {
     useEffect(() => {
         if(!init) {
             setInit(true)
+            setIsAuth(false)
             console.log('INIT');
             TokenService.connectToBridge(QRData, connectUser, disconnect);
         }
@@ -62,9 +59,14 @@ const ViteConnectBox = () => {
             { !isAuth
               ? <div>       
                 { isConnected && qrdata.length > 46
-                    ? <QRBox qrdata={qrdata} />
-                    : <div>Loading</div>} </div>
+                    ? <div> 
+                        <QRBox qrdata={qrdata} />
+                        <h1>Scan the QR code </h1>
+                        <h1>using your Vite Wallet</h1>
+                      </div>
+                    : <h2>Loading...</h2>} </div>
                 : null}
+                
         </div>
     );
 };

@@ -1,5 +1,4 @@
 import React from 'react';
-import TokenService from '../API/TokenService';
 import { useHistory } from 'react-router-dom';
 const EventInfo = ({event}) => {
 

@@ -1,7 +1,7 @@
 import MyTokens from "../pages/MyTokens";
 import AllTokens from "../pages/AllTokens";
 import TokenIdPage from "../pages/TokenIdPage"
-import Login from "../pages/Login";
+import ViteConnectBox from "../pages/ViteConnectBox";
 
 export const privateRoutes = [
     {path: '/mytokens', component: MyTokens, exact: true},
@@ -10,5 +10,5 @@ export const privateRoutes = [
 ]
 
 export const publicRoutes = [
-    {path: '/login', component: Login, exact: true},
+    {path: '/connect', component: ViteConnectBox, exact: true},
 ]

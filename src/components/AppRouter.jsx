@@ -5,11 +5,11 @@ import { privateRoutes, publicRoutes } from '../routes';
 import { AuthContext } from '../context';
 
 const AppRouter = function() {
-     const {isAuth, account, isLoading} = useContext(AuthContext);
+     const {isAuth, isLoading} = useContext(AuthContext);
     if(isLoading) {
         return <Loader />
     }
-
+    console.log(isAuth);
     return (
         isAuth
         ?  <Switch>
@@ -32,7 +32,7 @@ const AppRouter = function() {
                 key={route.path}
             />
          )}
-        {/* <Redirect to='/login' /> */}
+          <Redirect to='/connect' />
        </Switch>
     )
 }

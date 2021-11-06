@@ -12,6 +12,7 @@ const [tokens, setTokens] = useState([]);
 
 const [fetchTokens, isTokensLoading, TokenError] = useFetching ( async() => {
   const tokens = await TokenService.getAllTokens();
+  console.log(tokens);
   setTokens(tokens);
 });
 

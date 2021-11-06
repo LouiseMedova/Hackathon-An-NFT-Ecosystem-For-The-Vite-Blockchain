@@ -1,10 +1,8 @@
-import { Token } from '@solana/spl-token';
 import React, {useState, useEffect} from 'react';
 import {BrowserRouter} from "react-router-dom";
-import TokenService from './API/TokenService';
 import AppRouter from './components/AppRouter';
 import Navbar from './components/Navbar';
-import ViteConnectBox from './components/ViteConnectBox';
+import ViteConnectBox from './pages/ViteConnectBox';
 import {AuthContext} from "./context";
 
 function App() {
@@ -20,20 +18,6 @@ function App() {
   
 
   useEffect(() => {
-    console.log('IS_CONNECTED',isConnected);
-    console.log(localStorage.getItem('auth'));
-    // if(localStorage.getItem('connection') == true){
-    //   setIsConnected(true);
-    //   const uri = localStorage.getItem('qrdata') 
-    //   setQRdata(uri)
-    //   localStorage.setItem('connection', true)
-    // } else {
-    //   TokenService.getStore(connection, authorised, reconnect);
-    // }
-    // if (localStorage.getItem('auth')) {
-    //   console.log(localStorage.getItem('auth'));
-    //   setIsAuth(true);
-    // }
     if (localStorage.getItem('account')) {
       console.log(localStorage.getItem('account'));
       setAccount(localStorage.getItem('account'));
@@ -62,7 +46,7 @@ function App() {
     }}>
     <BrowserRouter>
       
-      <ViteConnectBox />
+      {/* <ViteConnectBox /> */}
       <Navbar />
       <AppRouter />
     </BrowserRouter>

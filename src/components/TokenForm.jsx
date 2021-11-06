@@ -62,8 +62,8 @@ const TokenForm = ({createToken}) => {
                 onChange={captureFile}
                 >
                 </MyInput>
-                <label for="fileUpload" class="custom-file-upload">
-                    <i class="fa fa-cloud-upload"></i> Choose file
+                <label htmlFor="fileUpload" class="custom-file-upload">
+                    <i className="fa fa-cloud-upload"></i> Choose file
                 </label>
                 <MyButton style={{marginLeft: '35%'}} onClick={(e) => addNewToken(e)}>Create Token</MyButton>
         </form>

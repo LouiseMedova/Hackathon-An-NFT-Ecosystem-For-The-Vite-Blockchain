@@ -9,12 +9,9 @@ import { AuthContext } from '../context';
 import TokenService from '../API/TokenService';
 import { useFetching } from '../hooks/UseFetching';
 import EventInfo from '../components/EventInfo';
-import {  useHistory } from "react-router-dom";
 
 
 const MyTokens = () => {
-
-  const router = useHistory();
 
   const {account, event, setIsEvent, isEvent, setEvent} = useContext(AuthContext);
   const [modal, setModal] = useState(false);
@@ -55,7 +52,6 @@ const eventDetected = (event) => {
 
 
 useEffect(() => {
-  console.log('USE_EFFECTS');
   fetchTokens();
   fetchApprovedTokens();
   return () => {

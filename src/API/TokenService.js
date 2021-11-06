@@ -1,5 +1,5 @@
 import provider from '@vite/vitejs-ws'
-import { ViteAPI, utils, abi, accountBlock, wallet } from '@vite/vitejs';
+import { ViteAPI,  abi, accountBlock } from '@vite/vitejs';
 import IPFSService from './IPFSService';
 import Connector from '@vite/connector';
 const { binary, off_chain, ABI, addr } = require('./config');
@@ -16,6 +16,7 @@ let vbInstance = null;
 let connected = false;
 
 const initConnector = (QRData, connectUser, disconnect) => {
+    console.log('connected', connected);
     vbInstance = new Connector({ bridge: BRIDGE })
     setTimeout(10000)
     console.log(vbInstance);
@@ -40,10 +41,10 @@ const initConnector = (QRData, connectUser, disconnect) => {
             console.log(err)
             vbInstance.destroy();
             disconnect()
-        //    setTimeout(initConnector(QRData, connectUser, disconnect), 5000);
             console.log('called init connector');
             connected = false;
         }
+       
 
     })
 }
@@ -101,7 +102,6 @@ async function callOffChain(methodName, params){
 }
 
 async function getMetaData (id) {
-    console.log('GET_METADATA');
     const result = await callOffChain('getTokenURI', [id]);
     console.log(result);
     const getData = await IPFSService.getData(result);
@@ -132,11 +132,6 @@ export default class TokenService {
         initConnector(QRData, connectUser, disconnect);
     }
 
-    static setVbInstance(instance) {
-        vbInstance = instance;
-        console.log(instance);
-    }
-
     static async createToken(metadata, account, eventDetected) {
         console.log(metadata);
         await subscribeToEvent(CONTRACT.address, 'Transfer', eventDetected);
@@ -156,12 +151,9 @@ export default class TokenService {
 
     static async getTokensOf(user) {
         console.log(user);
-        console.log('GET_TOKENS');
         const result = await callOffChain('getTokensOf', [user]);
-        console.log('TOKENS_GOTTED');
         let tokens = [];
         for (let i = 0; i < result[0].length; i++) {
-            console.log('CYCLE');
           let tokenMetadata = await getMetaData(result[0][i]);
           tokens.push(tokenMetadata)
         }

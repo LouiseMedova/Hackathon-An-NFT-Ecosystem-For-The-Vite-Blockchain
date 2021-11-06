@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import qrcode from 'qrcode-generator/qrcode.js'
-import TokenService from '../API/TokenService';
-import { Token } from '@solana/spl-token';
-
-
 
 const QRBox = ({qrdata}) => {
    
@@ -26,6 +22,7 @@ const QRBox = ({qrdata}) => {
     useEffect(() => {
         getQR(qrdata);
       }, [])
+      
     return (
         <div>
             { imgTag.length > 0
